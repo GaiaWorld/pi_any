@@ -1,5 +1,9 @@
 [package]
 name = "pi_any"
 version = "0.1.0"
-authors = ["suncy <suncy@gmail.com>"]
-edition = "2018"
+authors = ["suncy <530739162@qq.com>"]
+edition = "2021"
+description = "attempt to downcast the triat object to a concrete type"
+repository = "https://github.com/GaiaWorld/pi_any.git"
+license = "MIT OR Apache-2.0"
+keywords = ["pi", "any", "downcast"]
