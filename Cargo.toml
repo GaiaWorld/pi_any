@@ -6,4 +6,4 @@ edition = "2021"
 description = "attempt to downcast the triat object to a concrete type"
 repository = "https://github.com/GaiaWorld/pi_any.git"
 license = "MIT OR Apache-2.0"
-keywords = ["pi", "any", "downcast"]
+keywords = ["pi", "any", "downcast", "pi_any"]
