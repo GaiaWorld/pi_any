@@ -186,7 +186,7 @@ macro_rules! impl_downcast {
     ) => {
         impl_downcast! {
             @inject_where
-                [impl<$($forall_types),*> $trait_<$($param_types)*>]
+                [impl<$($forall_types),*> dyn $trait_<$($param_types)*>]
                 types [$($forall_types),*]
                 where [$($preds)*]
                 [{
@@ -346,7 +346,7 @@ macro_rules! impl_downcast_box {
     ) => {
         impl_downcast! {
             @inject_where
-                [impl<$($forall_types),*> $trait_<$($param_types)*>]
+                [impl<$($forall_types),*> dyn $trait_<$($param_types)*>]
                 types [$($forall_types),*]
                 where [$($preds)*]
                 [{
@@ -442,7 +442,7 @@ macro_rules! impl_downcast_rc {
     ) => {
         impl_downcast! {
             @inject_where
-                [impl<$($forall_types),*> $trait_<$($param_types)*>]
+                [impl<$($forall_types),*> dyn $trait_<$($param_types)*>]
                 types [$($forall_types),*]
                 where [$($preds)*]
                 [{
@@ -537,7 +537,7 @@ macro_rules! impl_downcast_arc {
     ) => {
         impl_downcast! {
             @inject_where
-                [impl<$($forall_types),*> $trait_<$($param_types)*>]
+                [impl<$($forall_types),*> dyn $trait_<$($param_types)*>]
                 types [$($forall_types),*]
                 where [$($preds)*]
                 [{
@@ -623,132 +623,135 @@ macro_rules! impl_downcast_arc {
     };
 }
 
-// #[cfg(test)]
-// mod test {
-//     macro_rules! test_mod {
-//         (
-//             $test_name:ident,
-//             trait $base_trait:path { $($base_impl:tt)* },
-//             type $base_type:ty,
-//             { $($def:tt)+ }
-//         ) => {
-//             mod $test_name {
-//                 use super::super::BoxAny;
+// pub mod m;
 
-//                 // A trait that can be downcast.
-//                 $($def)*
+#[cfg(test)]
+mod test {
+    macro_rules! test_mod {
+        (
+            $test_name:ident,
+            trait $base_trait:path { $($base_impl:tt)* },
+            type $base_type:ty,
+            { $($def:tt)+ }
+        ) => {
+            mod $test_name {
+				#[allow(unused_imports)]
+                use crate::BoxAny;
 
-//                 // Concrete type implementing Base.
-//                 #[derive(Debug)]
-//                 struct Foo(u32);
-//                 impl $base_trait for Foo { $($base_impl)* }
-//                 #[derive(Debug)]
-//                 struct Bar(f64);
-//                 impl $base_trait for Bar { $($base_impl)* }
+                // A trait that can be downcast.
+                $($def)*
 
-//                 // Functions that can work on references to Base trait objects.
-//                 fn get_val(base: &::std::boxed::Box<$base_type>) -> u32 {
-//                     match base.downcast_ref::<Foo>() {
-//                         Some(val) => val.0,
-//                         None => 0
-//                     }
-//                 }
-//                 fn set_val(base: &mut ::std::boxed::Box<$base_type>, val: u32) {
-//                     if let Some(foo) = base.downcast_mut::<Foo>() {
-//                         foo.0 = val;
-//                     }
-//                 }
+                // Concrete type implementing Base.
+                #[derive(Debug)]
+                struct Foo(u32);
+                impl $base_trait for Foo { $($base_impl)* }
+                #[derive(Debug)]
+                struct Bar(f64);
+                impl $base_trait for Bar { $($base_impl)* }
 
-//                 #[test]
-//                 fn test() {
-//                     let mut base: ::std::boxed::Box<$base_type> = ::std::boxed::Box::new(Foo(42));
-//                     assert_eq!(get_val(&base), 42);
+                // Functions that can work on references to Base trait objects.
+                fn get_val(base: &::std::boxed::Box<$base_type>) -> u32 {
+                    match base.downcast_ref::<Foo>() {
+                        Some(val) => val.0,
+                        None => 0
+                    }
+                }
+                fn set_val(base: &mut ::std::boxed::Box<$base_type>, val: u32) {
+                    if let Some(foo) = base.downcast_mut::<Foo>() {
+                        foo.0 = val;
+                    }
+                }
 
-//                     // Try sequential downcasts.
-//                     if let Some(foo) = base.downcast_ref::<Foo>() {
-//                         assert_eq!(foo.0, 42);
-//                     } else if let Some(bar) = base.downcast_ref::<Bar>() {
-//                         assert_eq!(bar.0, 42.0);
-//                     }
+                #[test]
+                fn test() {
+                    let mut base: ::std::boxed::Box<$base_type> = ::std::boxed::Box::new(Foo(42));
+                    assert_eq!(get_val(&base), 42);
 
-//                     set_val(&mut base, 6*9);
-//                     assert_eq!(get_val(&base), 6*9);
+                    // Try sequential downcasts.
+                    if let Some(foo) = base.downcast_ref::<Foo>() {
+                        assert_eq!(foo.0, 42);
+                    } else if let Some(bar) = base.downcast_ref::<Bar>() {
+                        assert_eq!(bar.0, 42.0);
+                    }
 
-//                     assert!(base.is::<Foo>());
+                    set_val(&mut base, 6*9);
+                    assert_eq!(get_val(&base), 6*9);
 
-//                     // Fail to convert Box<Base> into Box<Bar>.
-//                     let res = base.downcast::<Bar>();
-//                     assert!(res.is_err());
-//                     let base = res.unwrap_err();
-//                     // Convert Box<Base> into Box<Foo>.
-//                     assert_eq!(
-//                         6*9, base.downcast::<Foo>().map_err(|_| "Shouldn't happen.").unwrap().0);
-//                 }
-//             }
-//         };
+                    assert!(base.is::<Foo>());
 
-//         (
-//             $test_name:ident,
-//             trait $base_trait:path { $($base_impl:tt)* },
-//             { $($def:tt)+ }
-//         ) => {
-//             test_mod! {
-//                 $test_name, trait $base_trait { $($base_impl:tt)* }, type $base_trait, { $($def)* }
-//             }
-//         }
-//     }
+                    // Fail to convert Box<Base> into Box<Bar>.
+                    let res = base.downcast::<Bar>();
+                    assert!(res.is_err());
+                    let base = res.unwrap_err();
+                    // Convert Box<Base> into Box<Foo>.
+                    assert_eq!(
+                        6*9, base.downcast::<Foo>().map_err(|_| "Shouldn't happen.").unwrap().0);
+                }
+            }
+        };
 
-//     test_mod!(non_generic, trait Base {}, {
-//         trait Base: BoxAny {}
-//         impl_downcast!(Base);
-//     });
+        (
+            $test_name:ident,
+            trait $base_trait:path { $($base_impl:tt)* },
+            { $($def:tt)+ }
+        ) => {
+            test_mod! {
+                $test_name, trait $base_trait { $($base_impl:tt)* }, type dyn $base_trait, { $($def)* }
+            }
+        }
+    }
 
-//     test_mod!(generic, trait Base<u32> {}, {
-//         trait Base<T>: BoxAny {}
-//         impl_downcast!(Base<T>);
-//     });
+    test_mod!(non_generic, trait Base {}, {
+        trait Base: BoxAny {}
+        impl_downcast_box!(Base);
+    });
 
-//     test_mod!(constrained_generic, trait Base<u32> {}, {
-//         // Should work even if standard objects in the prelude are aliased to something else.
-//         #[allow(dead_code)] struct Box;
-//         #[allow(dead_code)] struct Option;
-//         #[allow(dead_code)] struct Result;
-//         trait Base<T: Copy>: BoxAny {}
-//         impl_downcast!(Base<T> where T: Copy);
-//     });
+    test_mod!(generic, trait Base<u32> {}, {
+        trait Base<T>: BoxAny {}
+        impl_downcast_box!(Base<T>);
+    });
 
-//     test_mod!(associated, trait Base { type H = f32; }, type Base<H=f32>, {
-//         trait Base: BoxAny { type H; }
-//         impl_downcast!(Base assoc H);
-//     });
+    test_mod!(constrained_generic, trait Base<u32> {}, {
+        // Should work even if standard objects in the prelude are aliased to something else.
+        #[allow(dead_code)] struct Box;
+        #[allow(dead_code)] struct Option;
+        #[allow(dead_code)] struct Result;
+        trait Base<T: Copy>: BoxAny {}
+        impl_downcast_box!(Base<T> where T: Copy);
+    });
 
-//     test_mod!(constrained_associated, trait Base { type H = f32; }, type Base<H=f32>, {
-//         trait Base: BoxAny { type H: Copy; }
-//         impl_downcast!(Base assoc H where H: Copy);
-//     });
+    test_mod!(associated, trait Base { type H = f32; }, type dyn Base<H=f32>, {
+        trait Base: BoxAny { type H; }
+        impl_downcast_box!(Base assoc H);
+    });
 
-//     test_mod!(param_and_associated, trait Base<u32> { type H = f32; }, type Base<u32, H=f32>, {
-//         trait Base<T>: BoxAny { type H; }
-//         impl_downcast!(Base<T> assoc H);
-//     });
+    test_mod!(constrained_associated, trait Base { type H = f32; }, type dyn Base<H=f32>, {
+        trait Base: BoxAny { type H: Copy; }
+        impl_downcast_box!(Base assoc H where H: Copy);
+    });
 
-//     test_mod!(constrained_param_and_associated, trait Base<u32> { type H = f32; }, type Base<u32, H=f32>, {
-//         trait Base<T: Clone>: BoxAny { type H: Copy; }
-//         impl_downcast!(Base<T> assoc H where T: Clone, H: Copy);
-//     });
+    test_mod!(param_and_associated, trait Base<u32> { type H = f32; }, type dyn Base<u32, H=f32>, {
+        trait Base<T>: BoxAny { type H; }
+        impl_downcast_box!(Base<T> assoc H);
+    });
 
-//     test_mod!(concrete_parametrized, trait Base<u32> {}, {
-//         trait Base<T>: BoxAny {}
-//         impl_downcast!(concrete Base<u32>);
-//     });
+    test_mod!(constrained_param_and_associated, trait Base<u32> { type H = f32; }, type dyn Base<u32, H=f32>, {
+        trait Base<T: Clone>: BoxAny { type H: Copy; }
+        impl_downcast_box!(Base<T> assoc H where T: Clone, H: Copy);
+    });
 
-//     test_mod!(concrete_associated, trait Base { type H = u32; }, type Base<H=u32>, {
-//         trait Base: BoxAny { type H; }
-//         impl_downcast!(concrete Base assoc H=u32);
-//     });
+    test_mod!(concrete_parametrized, trait Base<u32> {}, {
+        trait Base<T>: BoxAny {}
+        impl_downcast_box!(concrete Base<u32>);
+    });
 
-//     test_mod!(concrete_parametrized_associated, trait Base<u32> { type H = f32; }, type Base<u32, H=f32>, {
-//         trait Base<T>: BoxAny { type H; }
-//         impl_downcast!(concrete Base<u32> assoc H=f32);
-//     });
-// }
+    test_mod!(concrete_associated, trait Base { type H = u32; }, type dyn Base<H=u32>, {
+        trait Base: BoxAny { type H; }
+        impl_downcast_box!(concrete Base assoc H=u32);
+    });
+
+    test_mod!(concrete_parametrized_associated, trait Base<u32> { type H = f32; }, type dyn Base<u32, H=f32>, {
+        trait Base<T>: crate::BoxAny { type H; }
+        impl_downcast_box!(concrete Base<u32> assoc H=f32);
+    });
+}
